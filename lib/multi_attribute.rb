@@ -37,7 +37,7 @@ module MongoSphinx #:nodoc:
 
     def self.encode(str)
       offset = 0
-      if str.responds_to?"bytes"
+      if str.respond_to?"bytes"
         bytes = str.bytes
       else
         bytes = []
