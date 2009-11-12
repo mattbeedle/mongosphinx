@@ -162,7 +162,7 @@ module MongoMapper # :nodoc:
           result = client.query(query)
 
           #TODO
-          if result and result[:status] == 0 and (matches = result[:matches])
+          if result and result[:status] == 0 and result[:total_found] > 0 and (matches = result[:matches])
             classname = nil
             ids = matches.collect do |row|
               classname = MongoSphinx::MultiAttribute.decode(row[:attributes]['csphinx-class'])
