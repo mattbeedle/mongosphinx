@@ -37,7 +37,13 @@ module MongoSphinx #:nodoc:
 
     def self.encode(str)
       offset = 0
-      return str.bytes.collect { |c| (offset+= 0x0100) + c }.join(',')
+      if str.responds_to?"bytes"
+        bytes = str.bytes
+      else
+        bytes = []
+        str.each_byte{|x| bytes << x}
+      end
+      return bytes.collect { |c| (offset+= 0x0100) + c }.join(',')
     end
 
     # Returns the original MongoDB ID created from a Sphinx ID. Only works if
