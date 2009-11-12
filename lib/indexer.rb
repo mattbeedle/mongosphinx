@@ -87,7 +87,7 @@ module MongoSphinx #:nodoc:
 
         xml = '<?xml version="1.0" encoding="utf-8"?>'
 
-        xml << '<sphinx:docset><sphinx:schema>'
+        xml << "<sphinx:docset><sphinx:schema>\n"
 
         @xml_docs = []
         classes = []
@@ -115,16 +115,38 @@ module MongoSphinx #:nodoc:
                         }.flatten.uniq
 
         field_names.each do |key, value|
-          xml << "<sphinx:field name=\"#{key}\"/>"
+          xml << "  <sphinx:field name=\"#{key}\"/>\n"
         end
 
-        xml << '<sphinx:field name="classname"/>'
-        xml << '<sphinx:attr name="csphinx-class" type="multi"/>'
+        xml << '  <sphinx:field name="classname"/>'
+        xml << '  <sphinx:attr name="csphinx-class" type="multi"/>'
 
         xml << '</sphinx:schema>'
 
         @xml_header = xml
-        @xml_footer = '</sphinx:docset>'
+        @xml_footer = "</sphinx:docset>\n"
+      end
+      
+      # Add rows (in case we're paginating)
+      
+      def add_rows(rows = [])
+        rows.each do |row|
+          object = nil
+
+          if row.kind_of? MongoMapper::Document
+            object = row
+          elsif row.kind_of? Hash
+            row = row['value'] if row['classname'].nil?
+
+            if row and (class_name = row['classname'])
+              object = eval(class_name.to_s).new(row) rescue nil
+            end
+          end
+
+          if object and object.sphinx_id
+            @xml_docs << XMLDoc.from_object(object)
+          end
+        end
       end
 
       # Returns the encoded data as XML.
@@ -182,18 +204,18 @@ module MongoSphinx #:nodoc:
         raise ArgumentError, 'Missing id' if id.nil?
         raise ArgumentError, 'Missing class_name' if class_name.nil?
 
-        xml = "<sphinx:document id=\"#{id}\">"
+        xml = "<sphinx:document id=\"#{id}\">\n"
 
-        xml << '<csphinx-class>'
+        xml << '  <csphinx-class>'
         xml << MongoSphinx::MultiAttribute.encode(class_name)
-        xml << '</csphinx-class>'
-        xml << "<classname>#{class_name}</classname>"
+        xml << "</csphinx-class>\n"
+        xml << "  <classname>#{class_name}</classname>\n"
 
         properties.each do |key, value|
-          xml << "<#{key}><![CDATA[[#{value}]]></#{key}>"
+          xml << "  <#{key}><![CDATA[[#{(value.is_a?Array and value.join(' ')) || value.unpack('U*').map {|n| n.xchr}.join unless value.nil?}]]></#{key}>\n"
         end
 
-        xml << '</sphinx:document>'
+        xml << "</sphinx:document>\n"
 
         @xml = xml
 
