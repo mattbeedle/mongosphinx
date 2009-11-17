@@ -91,6 +91,8 @@ module MongoSphinx #:nodoc:
 
         @xml_docs = []
         classes = []
+        
+        valid_attr_types = {Integer => "int", Time => "timestamp", String => "str2ordinal", Boolean => "bool"} #, "float", "multi"}
 
         rows.each do |row|
           object = nil
@@ -116,6 +118,15 @@ module MongoSphinx #:nodoc:
 
         field_names.each do |key, value|
           xml << "  <sphinx:field name=\"#{key}\"/>\n"
+        end
+        
+        attribute_names = classes.collect { |clas|
+          clas.attribute_keys.collect { |attr_field| 
+            {:key => attr_field, :type => clas.keys[attr_field].type}} rescue []
+                            }.flatten.uniq
+        
+        attribute_names.each do |key, value|
+          xml << "  <sphinx:attr name=\"#{key[:key]}\" type=\"#{valid_attr_types[key[:type]]}\"/>\n"
         end
 
         xml << '  <sphinx:field name="classname"/>'
@@ -189,7 +200,7 @@ module MongoSphinx #:nodoc:
         raise ArgumentError, 'Missing object' if object.nil?
         raise ArgumentError, 'No compatible ID' if (id = object.sphinx_id).nil?
 
-        return new(id, object.class.to_s, object.fulltext_attributes)
+        return new(id, object.class.to_s, object.fulltext_attributes, object.attribute_fields)
       end
 
       # Creates a XMLDoc object from the provided ID, class name and data.
@@ -200,7 +211,7 @@ module MongoSphinx #:nodoc:
       # [class_name] Name of the class
       # [data] Hash with the properties to index
 
-      def initialize(id, class_name, properties)
+      def initialize(id, class_name, properties, attributes)
         raise ArgumentError, 'Missing id' if id.nil?
         raise ArgumentError, 'Missing class_name' if class_name.nil?
 
@@ -213,6 +224,10 @@ module MongoSphinx #:nodoc:
 
         properties.each do |key, value|
           xml << "  <#{key}><![CDATA[[#{(value.is_a?Array and value.join(' ')) || value.unpack('U*').map {|n| n.xchr}.join unless value.nil?}]]></#{key}>\n"
+        end
+        
+        attributes.each do |key, value|
+          xml << "  <#{key}>#{value}</#{key}>\n"
         end
 
         xml << "</sphinx:document>\n"

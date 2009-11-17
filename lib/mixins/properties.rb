@@ -49,6 +49,17 @@ module MongoMapper # :nodoc:
           not (clas.fulltext_keys.include? k.intern)
         end
       end
+      
+      # Returns a Hash of all Sphinx attributes to be used for filtering
+      # Note: fulltext_attributes really should be fulltext_fields
+      
+      def attribute_fields
+        clas = self.class
+          
+        return self.attributes.reject do |k, v|
+          not (clas.attribute_keys.include? k.intern)
+        end
+      end
 
       # Returns the numeric part of the document ID (compatible to Sphinx).
 

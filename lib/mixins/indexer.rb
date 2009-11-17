@@ -105,6 +105,12 @@ module MongoMapper # :nodoc:
 
           self.fulltext_keys = keys
           self.fulltext_opts = opts
+          
+          # Save the attributes if defined
+          
+          cattr_accessor :attribute_keys
+          
+          self.attribute_keys = opts[:attributes] || []
 
           # Overwrite setting of new ID to do something compatible with
           # Sphinx. If an ID already exists, we try to match it with our 
@@ -158,6 +164,12 @@ module MongoMapper # :nodoc:
             client.sort_mode = :extended
             client.sort_by = sort_by
           end
+          
+          if (filter = options[:with])
+            client.filters = options[:with].collect{ |attrib, value|
+              Riddle::Client::Filter.new attrib.to_s, value
+            }
+          end
 
           result = client.query(query)
 
@@ -170,7 +182,9 @@ module MongoMapper # :nodoc:
             end.compact
 
             return ids if options[:raw]
-            return Object.const_get(classname).find(ids)
+            query_opts = {}
+            options[:select] and query_opts[:select] = options[:select]
+            return Object.const_get(classname).find(ids, query_opts)
           else
             return []
           end
