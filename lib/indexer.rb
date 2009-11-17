@@ -107,7 +107,7 @@ module MongoSphinx #:nodoc:
             end
           end
 
-          if object and object.sphinx_id
+          if object and object._sphinx_id
             classes << object.class if not classes.include? object.class
             @xml_docs << XMLDoc.from_object(object)
           end
@@ -154,7 +154,7 @@ module MongoSphinx #:nodoc:
             end
           end
 
-          if object and object.sphinx_id
+          if object and object._sphinx_id
             @xml_docs << XMLDoc.from_object(object)
           end
         end
@@ -198,7 +198,7 @@ module MongoSphinx #:nodoc:
 
       def self.from_object(object)
         raise ArgumentError, 'Missing object' if object.nil?
-        raise ArgumentError, 'No compatible ID' if (id = object.sphinx_id).nil?
+        raise ArgumentError, 'No compatible ID' if (id = object._sphinx_id).nil?
 
         return new(id, object.class.to_s, object.fulltext_attributes, object.attribute_fields)
       end
@@ -223,6 +223,7 @@ module MongoSphinx #:nodoc:
         xml << "  <classname>#{class_name}</classname>\n"
 
         properties.each do |key, value|
+          next if value.nil?
           xml << "  <#{key}><![CDATA[[#{(value.is_a?Array and value.join(' ')) || value.unpack('U*').map {|n| n.xchr}.join unless value.nil?}]]></#{key}>\n"
         end
         

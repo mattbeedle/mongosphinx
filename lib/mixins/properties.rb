@@ -64,6 +64,7 @@ module MongoMapper # :nodoc:
       # Returns the numeric part of the document ID (compatible to Sphinx).
 
       def sphinx_id
+        raise "Deprecated"
         if (match = self.id.match(/#{self.class}-([0-9]+)/))
           return match[1]
         else

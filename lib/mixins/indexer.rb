@@ -57,20 +57,20 @@ module MongoMapper # :nodoc:
 
       def save_callback()
         object = self
-        if object.id.nil?
+        # Instead of completely messing with mongodb, we'll just add a _sphinx_id property
+        if object._sphinx_id.nil?
           idsize = fulltext_opts[:idsize] || 32
           limit = (1 << idsize) - 1
           
           while true
             id = rand(limit)
-            candidate = "#{self.class.to_s}-#{id}"
+            candidate = "#{id}" # "#{self.class.to_s}-#{id}"
             
-            begin
-              object.class.find(candidate) # Resource not found exception if available
-            rescue MongoMapper::DocumentNotFound
-              object.id = candidate
-              break
-            end
+            next unless object.class.find({"_sphinx_id" => candidate}).nil?
+
+            object._sphinx_id = candidate
+            break
+
           end
         end
       end
@@ -112,10 +112,10 @@ module MongoMapper # :nodoc:
           
           self.attribute_keys = opts[:attributes] || []
 
-          # Overwrite setting of new ID to do something compatible with
-          # Sphinx. If an ID already exists, we try to match it with our 
-          # Schema and cowardly ignore if not.
-
+          # Add an additional Sphinx-compatible ID
+          # TODO ensure_indexes 
+          
+          key :_sphinx_id, Integer
           before_save :save_callback
 
         end 
@@ -178,13 +178,14 @@ module MongoMapper # :nodoc:
             classname = nil
             ids = matches.collect do |row|
               classname = MongoSphinx::MultiAttribute.decode(row[:attributes]['csphinx-class'])
-              (classname + '-' + row[:doc].to_s) rescue nil
+              row[:doc]
+              # (classname + '-' + row[:doc].to_s) rescue nil
             end.compact
 
             return ids if options[:raw]
-            query_opts = {}
+            query_opts = {:_sphinx_id => ids}
             options[:select] and query_opts[:select] = options[:select]
-            return Object.const_get(classname).find(ids, query_opts)
+            return Object.const_get(classname).all(query_opts)
           else
             return []
           end
