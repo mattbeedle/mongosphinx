@@ -115,7 +115,7 @@ module MongoMapper # :nodoc:
           # Add an additional Sphinx-compatible ID
           # TODO ensure_indexes 
           
-          key :_sphinx_id, Integer
+          key :_sphinx_id, Integer, :index => true 
           before_save :save_callback
 
         end 
@@ -185,7 +185,7 @@ module MongoMapper # :nodoc:
             return ids if options[:raw]
             query_opts = {:_sphinx_id => ids}
             options[:select] and query_opts[:select] = options[:select]
-            return Object.const_get(classname).all(query_opts)
+            return Object.const_get(classname).all(query_opts).sort_by{|x| ids.index(x._sphinx_id)}
           else
             return []
           end
