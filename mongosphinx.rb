@@ -19,6 +19,8 @@ module MongoSphinx
   end
 end
 
+require 'lib/excerpter'
+require 'lib/results'
 require 'lib/multi_attribute'
 require 'lib/indexer'
 require 'lib/mixins/indexer'
