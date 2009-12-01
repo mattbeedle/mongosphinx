@@ -92,7 +92,7 @@ module MongoSphinx #:nodoc:
         @xml_docs = []
         classes = []
         
-        valid_attr_types = {Integer => "int", Time => "timestamp", String => "str2ordinal", Boolean => "bool"} #, "float", "multi"}
+        valid_attr_types = {Integer => "int", Time => "timestamp", ActiveSupport::TimeWithZone => "timestamp", String => "str2ordinal", Boolean => "bool"} #, "float", "multi"}
 
         rows.each do |row|
           object = nil
@@ -224,11 +224,22 @@ module MongoSphinx #:nodoc:
 
         properties.each do |key, value|
           next if value.nil?
-          xml << "  <#{key}><![CDATA[[#{(value.is_a?Array and value.join(' ')) || value.unpack('U*').map {|n| n.xchr}.join unless value.nil?}]]></#{key}>\n"
+          if [Time,ActiveSupport::TimeWithZone].include?value.class
+            xml << "  <#{key}>#{value.to_i}</#{key}>\n"
+          else
+            xml << "  <#{key}><![CDATA[[#{(value.is_a?Array and value.join(' ')) || value.unpack('U*').map {|n| n.xchr}.join unless value.nil?}]]></#{key}>\n"
+          end
         end
         
         attributes.each do |key, value|
-          xml << "  <#{key}>#{value}</#{key}>\n"
+          # Skip this if we already spit it out (I think)
+          next if properties.keys.include?key
+          # Convert to necessary format
+          if [Time,ActiveSupport::TimeWithZone].include?value.class
+            xml << "  <#{key}>#{value.to_i}</#{key}>\n"
+          else
+            xml << "  <#{key}>#{value}</#{key}>\n"
+          end
         end
 
         xml << "</sphinx:document>\n"
