@@ -157,7 +157,7 @@ module MongoMapper # :nodoc:
           end
 
           if (max_matches = options[:max_matches])
-            client.max_matches = matches
+            client.max_matches = max_matches
           end
 
           if (sort_by = options[:sort_by])
@@ -169,6 +169,17 @@ module MongoMapper # :nodoc:
             client.filters = options[:with].collect{ |attrib, value|
               Riddle::Client::Filter.new attrib.to_s, value
             }
+          end
+          
+          
+          if (page_size = options[:page_size] || 20)
+            page_size = 20 if (page_size.to_i == 0) # Justin Case
+            client.limit = page_size
+          end
+          
+          if (page = options[:page] || 1)
+            page = 1 if (page.to_i == 0) # Justin Case
+            client.offset = (page-1) * client.limit
           end
 
           result = client.query(query)
@@ -185,9 +196,10 @@ module MongoMapper # :nodoc:
             return ids if options[:raw]
             query_opts = {:_sphinx_id => ids}
             options[:select] and query_opts[:select] = options[:select]
-            return Object.const_get(classname).all(query_opts).sort_by{|x| ids.index(x._sphinx_id)}
+            documents = Object.const_get(classname).all(query_opts).sort_by{|x| ids.index(x._sphinx_id)}
+            return MongoSphinx::SearchResults.new(result, documents, page, page_size)
           else
-            return []
+            return MongoSphinx::SearchResults.new(result, [], page, page_size)
           end
         end
       end
