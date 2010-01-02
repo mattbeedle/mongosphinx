@@ -140,7 +140,10 @@ module MongoSphinx #:nodoc:
       
       # Add rows (in case we're paginating)
       
-      def add_rows(rows = [])
+      def add_rows(rows = [], flush = false)
+        # We present this option for large result sets
+        @xml_docs = [] if flush
+        
         rows.each do |row|
           object = nil
 
