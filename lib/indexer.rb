@@ -226,7 +226,7 @@ module MongoSphinx #:nodoc:
         xml << "  <classname>#{class_name}</classname>\n"
 
         properties.each do |key, value|
-          next if value.nil?
+          next if value.nil? or (value.is_a?Array and value.empty?)
           if [Time,ActiveSupport::TimeWithZone].include?value.class
             xml << "  <#{key}>#{value.to_i}</#{key}>\n"
           else
